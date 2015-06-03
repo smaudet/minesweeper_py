@@ -1,5 +1,8 @@
 <RCC>
   <qresource prefix="imgs">
+    <file alias="cool">imgs/coolface.png</file>
+    <file alias="dead">imgs/deadface.png</file>
+    <file alias="bttn2">imgs/muteface.png</file>
     <file alias="bttn">imgs/60x60.png</file>
     <file alias="mine">imgs/mine.png</file>
   </qresource>

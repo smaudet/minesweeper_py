@@ -1,3 +1,5 @@
+#!/bin/env python3
+
 # make a grid
 # put mines in it
 # calculate mines around square
@@ -7,9 +9,9 @@ from random import randrange
 
 from simple_timer import Timer
 from PyQt5.QtWidgets import QApplication, QMainWindow, QGraphicsScene, \
-  QGraphicsRectItem
+  QGraphicsRectItem, QLCDNumber
 from PyQt5.QtGui import QFont, QFontMetrics
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer, QObject
 
 from minesweeper_gui import *
 
@@ -205,15 +207,57 @@ def do_mine_warn():
 
 
 def do_clicked_mine():
-  if(fail_on_mine):
+  if fail_on_mine:
     do_game_over()
   else:
     do_mine_warn()
 
 class MineScene(QGraphicsScene):
-  def __init__(self, parent=None):
+  def __init__(self, ui, parent=None):
+    """
+
+    :param ui:
+    :param parent:
+    :return:
+    """
     super(MineScene, self).__init__(parent)
     self.minesNotSet = True
+    self.ui = ui
+
+  def emitter(self):
+    lcd = self.ui.lcdNumber
+    # lcd = QLCDNumber()
+    lcd.display(self.lcdCnt)
+    self.lcdCnt+=1
+    print(self.lcdCnt)
+
+  def do_mine_setup(self,r):
+    base = set()
+    (x1, x2, y1, y2) = get_range(r)
+    for tx in range(x1, x2):
+      for ty in range(y1, y2):
+        base.add(grid[tx][ty])
+
+    num_to_place = num_mines
+
+    while num_to_place > 0:
+      x = randrange(0, grid_x)
+      y = randrange(0, grid_y)
+      mr = grid[x][y]
+      if mr.m == 0 and (mr not in base):
+        mr.m = 1
+        num_to_place -= 1
+
+    self.lcdCnt = 0
+    self.timer = QTimer()
+    self.timer.setInterval(1000)
+    self.timer.setSingleShot(False)
+    self.timer.timeout.connect(self.emitter)
+    self.timer.start()
+
+    # self.ui
+
+    self.minesNotSet = False
 
   def mousePressEvent(self, QGraphicsSceneMouseEvent):
     pos = QtCore.QPointF(QGraphicsSceneMouseEvent.scenePos())
@@ -224,23 +268,7 @@ class MineScene(QGraphicsScene):
     mbut = QGraphicsSceneMouseEvent.button()
     if mbut == Qt.LeftButton and not r.flagged:
       if self.minesNotSet:
-
-        base = set()
-        (x1, x2, y1, y2) = get_range(r)
-        for tx in range(x1, x2):
-          for ty in range(y1, y2):
-            base.add(grid[tx][ty])
-
-        num_to_place = num_mines
-
-        while num_to_place > 0:
-          x = randrange(0, grid_x)
-          y = randrange(0, grid_y)
-          mr = grid[x][y]
-          if mr.m == 0 and (mr not in base):
-            mr.m = 1
-            num_to_place -= 1
-        self.minesNotSet = False
+        self.do_mine_setup(r)
       if r.m:
         do_clicked_mine()
       else:
@@ -258,11 +286,13 @@ def setup_stuff(ui):
   # layout = PyQt5.QtWidgets.QHBoxLayout()
   # layout.addWidget(pw)
   # ui.drawArea.setLayout(layout)
+
   timer = Timer()
+
   scene = ui.drawArea.scene()
   theTrans = ui.drawArea.transform()
   if scene is None:
-    scene = MineScene()
+    scene = MineScene(ui)
     # scene = QGraphicsScene()
     ui.drawArea.setScene(scene)
 
